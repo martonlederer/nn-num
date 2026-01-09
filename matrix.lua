@@ -103,11 +103,19 @@ end
 
 -- Multiplication support for matrices
 ---@param rhs Matrix|number Matrix to multiply with
+---@param target Matrix|nil Matrix to write the result to
 ---@return Matrix
-function Matrix:__mul(rhs)
+function Matrix:__mul(rhs, target)
+  if target then target:clear() end
+
   -- multiply by a number
   if type(rhs) == "number" then
-    local res = Matrix:new(self.rows, self.cols)
+    assert(
+      not target or target.rows == self.rows and target.cols == self.cols,
+      "Invalid target matrix, has to be " .. tostring(self.rows) .. "x" .. tostring(self.cols)
+    )
+
+    local res = target or Matrix:new(self.rows, self.cols)
     local mx0, mx_res = self.data, res.data
 
     for i = 0, self.rows * self.cols - 1 do
@@ -121,8 +129,12 @@ function Matrix:__mul(rhs)
     self.cols == rhs.rows,
     "Cannot multiply matrices with these sizes"
   )
+  assert(
+    not target or target.rows == self.rows and target.cols == rhs.cols,
+    "Invalid target matrix, has to be " .. tostring(self.rows) .. "x" .. tostring(rhs.cols)
+  )
 
-  local res = Matrix:new(self.rows, rhs.cols)
+  local res = target or Matrix:new(self.rows, rhs.cols)
   local mx0, mx1, mx_res = self.data, rhs.data, res.data
 
   for i = 0, self.rows - 1 do
@@ -202,6 +214,25 @@ function Matrix:transpose()
   return res
 end
 
+-- Map matrix cells to a new matrix
+---@param map_fn fun(val, row, col): number Map function
+---@param in_place boolean|nil Enable in place mapping
+---@return Matrix
+function Matrix:map(map_fn, in_place)
+  local res = in_place and self or Matrix:new(self.rows, self.cols)
+  local mx, mx_res = self.data, res.data
+  local num_cols = self.cols
+
+  for i = 0, self.rows * self.cols - 1 do
+    local row = math.floor(i / num_cols)
+    local col = i % num_cols
+
+    mx_res[i] = map_fn(mx[i], row, col)
+  end
+
+  return res
+end
+
 -- Equalitiy check
 ---@param rhs Matrix Matrix to compare to
 ---@return boolean
@@ -217,6 +248,26 @@ function Matrix:__eq(rhs)
   end
 
   return true
+end
+
+-- Fills the matrix with a given value
+---@param val number The value to fill all cells with
+---@return Matrix
+function Matrix:fill(val)
+  local mx = self.data
+
+  for i = 0, self.rows * self.cols - 1 do
+    mx[i] = val
+  end
+
+  return self
+end
+
+-- Clears the matrix, sets all cells to 0
+---@return Matrix
+function Matrix:clear()
+  ffi.fill(self.data, ffi.sizeof("double") * self.rows * self.cols, 0)
+  return self
 end
 
 -- Stringify matrix
