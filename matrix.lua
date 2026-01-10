@@ -1,10 +1,15 @@
 local ffi = require "ffi"
 
+---@class Matrix
+---@field data table
+---@field rows number
+---@field cols number
 local Matrix = {}
 
 -- Create a matrix with m rows and n cols
 ---@param m number Matrix rows
 ---@param n number Matrix columns
+---@return Matrix
 function Matrix:new(m, n)
   local mx = setmetatable({
     data = ffi.new("double[?]", n * m),
@@ -13,6 +18,19 @@ function Matrix:new(m, n)
   }, self)
 
   return mx
+end
+
+-- Creates a clone instance of the matrix
+---@return Matrix
+function Matrix:clone()
+  local clone = Matrix:new(self.rows, self.cols)
+  local mx0, mx1 = self.data, clone.data
+
+  for i = 0, self.rows * self.cols - 1 do
+    mx1[i] = mx0[i]
+  end
+
+  return clone
 end
 
 -- Overload indexing for matrix row/col support
@@ -127,7 +145,7 @@ function Matrix:__mul(rhs, target)
 
   assert(
     self.cols == rhs.rows,
-    "Cannot multiply matrices with these sizes"
+    "Cannot multiply matrices " .. self.rows .. "x" .. self.cols .. " * " .. rhs.rows .. "x" .. rhs.cols
   )
   assert(
     not target or target.rows == self.rows and target.cols == rhs.cols,
@@ -215,7 +233,7 @@ function Matrix:transpose()
 end
 
 -- Map matrix cells to a new matrix
----@param map_fn fun(val, row, col): number Map function
+---@param map_fn fun(val: number, row: number, col: number): number Map function
 ---@param in_place boolean|nil Enable in place mapping
 ---@return Matrix
 function Matrix:map(map_fn, in_place)

@@ -1,35 +1,33 @@
-local Matrix = require "matrix"
 local Layer = require "layer"
+local NeuralNetwork = require "neuralnetwork"
+local mnist = require "mnist"
 
--- 1. Setup: Hozzunk létre egy réteget (2 bemenet -> 3 neuron)
--- Aktivációnak egyelőre használjunk egy "identitás" függvényt (visszaadja önmagát),
--- hogy könnyebb legyen ellenőrizni a matekot.
-local identity = function(x) return x end
-local my_layer = Layer:new(2, 3, identity)
+local model = NeuralNetwork:new()
+model:addLayer(Layer:new(128, 784, Layer.activation.sigmoid))
+model:addLayer(Layer:new(10, 128, Layer.activation.sigmoid))
 
--- 2. Manuális súlyok beállítása (opcionális, a teszt kedvéért)
--- Weights: 2x3 mátrix
--- [ 1  2  3 ]
--- [ 4  5  6 ]
-my_layer.weights[0][0] = 1; my_layer.weights[0][1] = 2; my_layer.weights[0][2] = 3
-my_layer.weights[1][0] = 4; my_layer.weights[1][1] = 5; my_layer.weights[1][2] = 6
+local dataset = mnist.load("train-images-idx3-ubyte", "train-labels-idx1-ubyte", 10)
 
--- Bias: 1x3 vektor
--- [ 10 10 10 ]
-my_layer.bias:fill(10)
+model:fit(dataset, 20, 0.1, function (epoch, total, loss)
+  print("Epoch " .. epoch .. "/" .. total .. " (loss: " .. loss .. ")")
+end)
 
--- 3. Bemenet: 1x2 vektor
--- [ 1  1 ]
-local input = Matrix:new(1, 3)
-input[0][0] = 1
-input[0][1] = 1
-input[0][2] = 1
+local function get_predicted_num(predictions)
+  local predictions_raw = predictions.data
+  local output, p = 0, predictions_raw[0]
 
--- 4. Forward Pass futtatása
-local result = my_layer:forward(input)
+  for i = 1, predictions.rows * predictions.cols - 1 do
+    if predictions_raw[i] > p then
+      output = i
+    end
+  end
 
--- 5. Eredmény kiírása
-print("Bemenet:\n" .. tostring(input))
-print("\nSúlyok:\n" .. tostring(my_layer.weights))
-print("\nBias:\n" .. tostring(my_layer.bias))
-print("\nEredmény (Várt: [15, 17, 19]):\n" .. tostring(result))
+  return output, p
+end
+
+for i = 1, math.min(20, #dataset) do
+  local sample = dataset[i]
+  local prediction, confidence = get_predicted_num(model:predict(sample.image))
+
+  print("Tip for " .. sample.label .. " is " .. prediction .. " (confidence: " .. confidence .. ")")
+end
