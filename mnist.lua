@@ -36,7 +36,7 @@ function mnist.load(image_path, label_path, num_to_load)
 
   local dataset = {}
 
-  print(string.format("Loading: %d image (%dx%d)...", num_to_load, n_rows, n_cols))
+  print(string.format("Loading: %d images (%dx%d)...", num_to_load, n_rows, n_cols))
 
   for i = 1, num_to_load do
     -- read image file and normalize

@@ -95,4 +95,69 @@ function NeuralNetwork:fit(dataset, epochs, learning_rate, log)
   end
 end
 
+-- Saves weights and biases for each layer
+---@param location string Location to save to
+---@return boolean
+function NeuralNetwork:save(location)
+  local file = io.open(location, "w")
+  if not file then return false end
+
+  for _, layer in ipairs(self.layers) do
+    local mx_w = layer.weights.data
+    local wcount = layer.weights.cols * layer.weights.rows
+
+    for i = 0, wcount - 1 do
+      file:write(tostring(mx_w[i]), i < wcount - 1 and "," or "")
+    end
+
+    file:write("\t")
+
+    local bias_w = layer.bias.data
+
+    for i = 0, layer.bias.cols - 1 do
+      file:write(tostring(bias_w[i]), i < layer.bias.cols - 1 and "," or "")
+    end
+
+    file:write("\n")
+  end
+
+  file:close()
+  return true
+end
+
+-- Loads weights and biases
+---@param location string
+---@return boolean
+function NeuralNetwork:load(location)
+  local file = io.open(location, "r")
+  if not file then return false end
+
+  local layer_idx = 1
+  for line in file:lines() do
+    local current_layer = self.layers[layer_idx]
+    if not current_layer then break end
+
+    local weights_str, bias_str = line:match("([^\t]+)\t([^\t]+)")
+
+    if weights_str and bias_str then
+      local w_idx = 0
+      for val in weights_str:gmatch("[^,]+") do
+        current_layer.weights.data[w_idx] = tonumber(val)
+        w_idx = w_idx + 1
+      end
+
+      local b_idx = 0
+      for val in bias_str:gmatch("[^,]+") do
+        current_layer.bias.data[b_idx] = tonumber(val)
+        b_idx = b_idx + 1
+      end
+    end
+
+    layer_idx = layer_idx + 1
+  end
+
+  file:close()
+  return true
+end
+
 return NeuralNetwork
