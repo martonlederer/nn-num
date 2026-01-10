@@ -52,10 +52,10 @@ function NeuralNetwork:adjust(y, d, learning_rate)
 
   ---@type Matrix
   local gradient = y - d
-  local loss = 0
+  local mx_gradient, loss = gradient.data, 0
 
-  for i = 0, gradient.cols - 1 do
-    local diff = gradient.data[i]
+  for i = 0, gradient.rows * gradient.cols - 1 do
+    local diff = mx_gradient[i]
     loss = loss + (diff * diff)
   end
   loss = loss * 0.5

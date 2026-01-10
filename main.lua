@@ -7,7 +7,7 @@ model:addLayer(Layer:new(128, 784, Layer.activation.sigmoid))
 model:addLayer(Layer:new(10, 128, Layer.activation.sigmoid))
 
 if not model:load("./model") then
-  local dataset = mnist.load("train-images-idx3-ubyte", "train-labels-idx1-ubyte", 1000)
+  local dataset = mnist.load("train-images-idx3-ubyte", "train-labels-idx1-ubyte", 10000)
 
   model:fit(dataset, 20, 0.1, function (epoch, total, loss)
     print("Epoch " .. epoch .. "/" .. total .. " (loss: " .. loss .. ")")
