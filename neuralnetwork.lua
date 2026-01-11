@@ -1,14 +1,21 @@
 local Matrix = require "matrix"
 
+---@alias LossFunction fun(y: Matrix, d: Matrix): number
+
 ---@class NeuralNetwork
 ---@field layers Layer[]
-local NeuralNetwork = {}
+---@field loss LossFunction
+local NeuralNetwork = {
+  loss = {}
+}
 
 -- Create an empty Neural Network
+---@param loss? LossFunction Optional loss function
 ---@return NeuralNetwork
-function NeuralNetwork:new()
+function NeuralNetwork:new(loss)
 	local network = setmetatable({
-	  layers = {}
+	  layers = {},
+		loss = loss or NeuralNetwork.loss.mse
 	}, self)
 	self.__index = self
 
@@ -52,13 +59,6 @@ function NeuralNetwork:adjust(y, d, learning_rate)
 
   ---@type Matrix
   local gradient = y - d
-  local mx_gradient, loss = gradient.data, 0
-
-  for i = 0, gradient.rows * gradient.cols - 1 do
-    local diff = mx_gradient[i]
-    loss = loss + (diff * diff)
-  end
-  loss = loss * 0.5
 
   for i = 0, #self.layers - 1 do
     gradient = self.layers[#self.layers - i]:backward(
@@ -67,7 +67,7 @@ function NeuralNetwork:adjust(y, d, learning_rate)
     )
   end
 
-  return loss
+  return self.loss(y, d)
 end
 
 -- Train the model with a dataset
@@ -158,6 +158,20 @@ function NeuralNetwork:load(location)
 
   file:close()
   return true
+end
+
+-- MSE loss function
+---@param y Matrix Output
+---@param d Matrix Expected output
+---@return number
+function NeuralNetwork.loss.mse(y, d)
+  local loss = 0
+
+  for i = 0, y.rows * y.cols - 1 do
+    loss = loss + (y.data[i] - d.data[i]) ^ 2
+  end
+
+  return 0.5 * loss
 end
 
 return NeuralNetwork
